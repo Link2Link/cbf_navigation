@@ -27,7 +27,10 @@ h_vehicle = plot(0,0, 'r');
 for i=1:length(sc)
     h_sc{i} = plot(0,0, 'g');
 end
-
+h = animatedline;
+h.LineStyle = '--';
+h.Color = 'r';
+    
 
 dt = 5e-2;
 idx = 1;
@@ -63,6 +66,7 @@ for current = 0:dt:10
    p = s(3:4, :);
    phi = s(1);
    draw_car(p, phi, h_vehicle)
+   addpoints(h,s(3),s(4));
    
    sc = update_cars(sc, dt, c2);
    
