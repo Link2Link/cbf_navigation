@@ -1,21 +1,20 @@
-function uout = solve_cbf(u_ref, s, sc, L, R, r)
+function uout = solve_cbf(u_ref, s, sc, r1, r2, curvature_center, r_safe)
 %SOLVE_CBF solve the optimization problem for cbf constriant
 
 phi = s(1);
 v = s(2);
 x = s(3);
 y = s(4);
+c_x = curvature_center(1);
+c_y = curvature_center(2);
+r1 = r1 + 1;
+r2 = r2 - 1;
 
-
-phic = sc(1, :);
-vc = sc(2, :);
-xc = sc(3, :);
-yc = sc(4, :);
-num = size(sc,2);
+num = length(sc);
 
 A = [0 1; 0 0];
 B = [0;1];
-p = -[1, 3];
+p = -[1, 5];
 K = place(A,B,p);
 
 a0 = K(1);
@@ -23,31 +22,33 @@ a1 = K(2);
 
 cvx_begin quiet
     variable u_a
-    variable u_p
-    variable p(3,1)
-    minimize( norm( u_p - u_ref(1)) + 5*norm( u_a - u_ref(2))- [0.1,0.1,0.1]*p)
+    variable u_w
+    variable p
+    minimize( norm( u_w - u_ref(1)) + 5*norm( u_a - u_ref(2)))
     subject to
-        cos(phi)*u_a-sin(phi)*v*u_p + a0*(x-L-r) + a1*v*cos(phi) >=p(1);
-        -cos(phi)*u_a + sin(phi)*v*u_p + a0*(-x+R-r) - a1*v*cos(phi) >=p(2);
+        u_w >= -pi;
+        u_w <= pi; 
+        h = 0.5*(x-c_x)^2 + 0.5*(y-c_y)^2;
+        dh = (x - c_x)*v*cos(phi) + (y - c_y)*v*sin(phi);
+        ddh = v^2 + (x - c_x)*(u_a*cos(phi) - v*sin(phi)*u_w) + (y - c_y)*(u_a*sin(phi) + v*cos(phi)*u_w);
 
-        for k =1:num
-            ddh = (v*cos(phi)-vc(k)*cos(phic(k)))^2 + (x - xc(k))*(u_a*cos(phi)-v*sin(phi)*u_p) ...
-                + (v*sin(phi)-vc(k)*sin(phic(k)))^2 + (y - yc(k))*(u_a*sin(phi)+v*cos(phi)*u_p);
-            dh = (x-xc(k))*(v*cos(phi)-vc(k)*cos(phic(k))) + (y-yc(k))*(v*sin(phi)-vc(k)*sin(phic(k)));
-            h = 1/2*(x-xc(k))^2 + 1/2*(y-yc(k))^2 -2*r^2;
-            ddh + a1*dh + a0*h >=p(3);
-            
-%             ((x-xc(k))*cos(phi)+(y-yc(k))*sin(phi))*u_a + v^2 + v*(-(x-xc(k))*sin(phi)+(y-yc(k))*cos(phi))*u_p...
-%             +a0*(0.5*(x-xc(k))^2+0.5*(y-yc(k))^2-2*r^2) + ...
-%             a1*((x-xc(k))*cos(phi)+(y-yc(k))*sin(phi))*v >=p(3);
+        ddh + a1*dh + a0*(h - 0.5*r1^2) >=0;
+        -ddh - a1*dh + a0*(0.5*r2^2 - h) >=0;
+        for k = 1:num
+            xc = sc{k}(3);
+            yc = sc{k}(4);
+            vc = -sc{k}(2);
+            phic = sc{k}(1);
+            ddh = (v*cos(phi)-vc*cos(phic))^2 + (x - xc)*(u_a*cos(phi)-v*sin(phi)*u_w) ...
+            + (v*sin(phi)-vc*sin(phic))^2 + (y - yc)*(u_a*sin(phi)+v*cos(phi)*u_w);
+            dh = (x-xc)*(v*cos(phi)-vc*cos(phic)) + (y-yc)*(v*sin(phi)-vc*sin(phic));
+            h = 1/2*(x-xc)^2 + 1/2*(y-yc)^2 -2*r_safe^2;
+            ddh + a1*dh + a0*h >= 0;
         end
-        u_p <= pi/6;
-        u_p >= -pi/6;
-        p >= 0;
 cvx_end
 
 
-uout = [u_p, u_a];
+uout = [u_w, u_a];
 
 end
 
