@@ -34,7 +34,8 @@ h.Color = 'r';
 
 dt = 5e-2;
 idx = 1;
-for current = 0:dt:10
+git_flag = 1;
+for current = 0:dt:20
    phi = s(1);
    v = s(2);
    x = s(3);
@@ -57,9 +58,9 @@ for current = 0:dt:10
    
    u_ref = [uw_ref, ua_ref];
    if idx == 1
-       u = solve_cbf(u_ref, s, [], r1, r2, curvature_center{idx}, 1.5);
+       u = solve_cbf(u_ref, s, [], r1, r2, curvature_center{idx}, 1);
    else
-       u = solve_cbf(u_ref, s, sc, r1, r2, curvature_center{idx}, 1.5);
+       u = solve_cbf(u_ref, s, sc, r1, r2, curvature_center{idx}, 1);
    end
        [t, s] = ode45(@(t,s) Dyn_car(t,s,u), [0, dt], s);
    s = s(end, :)';
@@ -73,4 +74,15 @@ for current = 0:dt:10
    for i=1:length(sc)
        draw_car(sc{i}(3:4), sc{i}(1), h_sc{i}); 
    end
+   
+       drawnow
+    frame = getframe;
+    [imind,cm] = rgb2ind(frame.cdata,256);
+    if git_flag
+        imwrite(imind,cm,'rename.gif','gif','LoopCount',Inf,'DelayTime',dt/10000);
+        git_flag = 0;
+    else
+        imwrite(imind,cm,'rename.gif','gif','WriteMode','append' ,'DelayTime',dt/10000);
+    end
+   
 end
